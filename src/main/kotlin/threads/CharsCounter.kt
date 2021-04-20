@@ -1,57 +1,49 @@
 package threads
 
-import threads.Storage.threadPool
-import java.util.concurrent.Callable
+import kotlinx.coroutines.*
 import java.util.concurrent.Executors
-import java.util.concurrent.LinkedBlockingQueue
 import kotlin.random.Random
 
 object Storage {
     val threadPool = Executors.newSingleThreadExecutor()
 }
 
-fun main() {
-    while (true) {
+fun main() = runBlocking {
 
-        println("Введите строку для подсчёта символов: ")
-        val e = readLine()
-        if (e != null) {
-            if (e == "quit") {
-                break
-            } else {
-                val ss = threadPool.submit(Counter(e))
-                println(ss.get())
-            }
+    while (true) {
+        val defferedString = async {
+            println("Введите строку для подсчёта символов: ")
+            val result = readLine()
+            result
         }
 
+        if (defferedString.await()!! == "quit") {
+            break
+        }
+
+        runBlocking {
+            countSymbols(defferedString.await()!!)
+        }
     }
 
-    println("До свидания!")
-    threadPool.shutdown()
+    println("До свидания")
 }
 
-class Counter(private val message: String) : Callable<String> {
-
-    private fun countLetters(string: String): MutableMap<Char, Int> {
-        val resultMap = mutableMapOf<Char, Int>()
-        for (i in string) {
-            Thread.sleep(Random.nextLong(2000L))
-            if (resultMap.containsKey(i)) {
-                var value = resultMap[i]!!
-                value++
-                resultMap[i] = value
-            } else {
-                resultMap[i] = 1
-            }
+suspend fun countSymbols(string: String) {
+    val resultMap = mutableMapOf<Char, Int>()
+    for (i in string) {
+        delay(Random.nextLong(2000L))
+        if (resultMap.containsKey(i)) {
+            var value = resultMap[i]!!
+            value++
+            resultMap[i] = value
+        } else {
+            resultMap[i] = 1
         }
-        return resultMap
     }
+    println(resultMap.joinToString())
+}
 
-    private fun Map<*, *>.joinToString(): String {
-        return this.map { (key, value) -> "\'$key\': $value" }.joinToString(",")
-    }
-
-    override fun call(): String {
-        return countLetters(message).joinToString()
-    }
+fun  Map<*, *>.joinToString(): String {
+    return this.map { (key, value) -> "\'$key\': $value" }.joinToString(",")
 }
